@@ -1,0 +1,102 @@
+#include <iostream>   
+#include <string>     
+
+const int MAX_RECORDS = 100; // Max number of records in the database
+
+struct StudentRecord {
+    int id;               // ID for the student
+    std::string name;     // Name of the student
+    double score;         // Student's score
+};
+
+void addRecord(StudentRecord records[], int &count);       // Add a new student record
+void displayTable(const StudentRecord records[], int count); // Display all student records
+void searchRecord(const StudentRecord records[], int count, int searchID); // Search for a record by ID
+
+int main() {
+    StudentRecord database[MAX_RECORDS]; 
+
+    int recordCount = 0;                 // Tracks the current number of records
+    int choice;
+
+    do {
+        std::cout << "\nDatabase Menu\n";
+        std::cout << "1. Add Record\n";
+        std::cout << "2. Display Table\n";
+        std::cout << "3. Search Record by ID\n";
+        std::cout << "4. Exit\n";
+        std::cout << "Enter your choice: ";
+        std::cin >> choice;
+
+        switch (choice) {
+        case 1:
+            addRecord(database, recordCount); // Calls function to adding a record
+            break;
+        case 2:
+            displayTable(database, recordCount); // Calls function to display records
+            break;
+        case 3:
+            int searchID;
+            std::cout << "Enter the ID to search: ";
+            std::cin >> searchID;
+            searchRecord(database, recordCount, searchID); // Calls function to search for record
+            break;
+        case 4:
+            std::cout << "Exiting the program.\n";
+            break;
+        default:
+            std::cout << "Invalid choice! Please try again.\n";
+        }
+    } while (choice != 4); // Loops until the user chooses to exit 
+
+    return 0;
+}
+
+void addRecord(StudentRecord records[], int &count) {
+    if (count >= MAX_RECORDS) { // Checks if database is full
+        std::cout << "Database is full. Cannot add more records.\n";
+        return;
+    }
+
+    // Input data for the new record
+    std::cout << "Enter student ID: ";
+    std::cin >> records[count].id;   // Accessing array elements
+    std::cin.ignore(); // Clears the newline character from the input buffer
+    std::cout << "Enter student name: ";
+    std::getline(std::cin, records[count].name); // Input for strings
+    std::cout << "Enter student score: ";
+    std::cin >> records[count].score; // Input for floating-point numbers
+
+    count++; // Increment record count after adding a new record
+    std::cout << "Record added successfully.\n";
+}
+
+void displayTable(const StudentRecord records[], int count) {
+    if (count == 0) { // Checks if the database is empty
+        std::cout << "No records to display.\n";
+        return;
+    }
+
+    //Database Table
+    std::cout << "\nDatabase Table:\n";
+    std::cout << "ID\tName\t\tScore\n";
+    std::cout << "-----------------------------------\n";
+
+    for (int i = 0; i < count; i++) { // Looping through arrays
+        std::cout << records[i].id << "\t" << records[i].name << "\t\t" << records[i].score << "\n";
+    }
+}
+
+void searchRecord(const StudentRecord records[], int count, int searchID) {
+    for (int i = 0; i < count; i++) { // Linear search implementation
+        if (records[i].id == searchID) { // Compares input ID with each record's ID
+            // If found, display the record details
+            std::cout << "Record Found:\n";
+            std::cout << "ID: " << records[i].id << "\n";
+            std::cout << "Name: " << records[i].name << "\n";
+            std::cout << "Score: " << records[i].score << "\n";
+            return; // Exit the function once the record is found
+        }
+    }
+    std::cout << "Record with ID " << searchID << " not found.\n"; // If no match is found
+}
