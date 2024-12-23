@@ -1,102 +1,125 @@
-#include <iostream>   
-#include <string>     
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <sstream>
 
-const int MAX_RECORDS = 100; // Max number of records in the database
+// Data structure to store databases and tables
+std::map<std::string, std::map<std::string, std::vector<std::pair<std::string, std::string>>>> databases;
+std::string currentDatabase; // Tracks the active database
 
-struct StudentRecord {
-    int id;               // ID for the student
-    std::string name;     // Name of the student
-    double score;         // Student's score
-};
+// Function Prototypes
+void createDatabase(const std::string &dbName);
+void createTable(const std::string &tableName, const std::vector<std::pair<std::string, std::string>> &columns);
+void setActiveDatabase(const std::string &dbName);
+void parseCommand(const std::string &command);
 
-void addRecord(StudentRecord records[], int &count);       // Add a new student record
-void displayTable(const StudentRecord records[], int count); // Display all student records
-void searchRecord(const StudentRecord records[], int count, int searchID); // Search for a record by ID
-
+// Main Function
 int main() {
-    StudentRecord database[MAX_RECORDS]; 
+    std::string command;
 
-    int recordCount = 0;                 // Tracks the current number of records
-    int choice;
+    std::cout << "Enter commands (type 'EXIT' to quit):\n";
+    while (true) {
+        std::cout << "> ";
+        std::getline(std::cin, command);
 
-    do {
-        std::cout << "\nDatabase Menu\n";
-        std::cout << "1. Add Record\n";
-        std::cout << "2. Display Table\n";
-        std::cout << "3. Search Record by ID\n";
-        std::cout << "4. Exit\n";
-        std::cout << "Enter your choice: ";
-        std::cin >> choice;
-
-        switch (choice) {
-        case 1:
-            addRecord(database, recordCount); // Calls function to adding a record
+        if (command == "EXIT") {
             break;
-        case 2:
-            displayTable(database, recordCount); // Calls function to display records
-            break;
-        case 3:
-            int searchID;
-            std::cout << "Enter the ID to search: ";
-            std::cin >> searchID;
-            searchRecord(database, recordCount, searchID); // Calls function to search for record
-            break;
-        case 4:
-            std::cout << "Exiting the program.\n";
-            break;
-        default:
-            std::cout << "Invalid choice! Please try again.\n";
         }
-    } while (choice != 4); // Loops until the user chooses to exit 
+
+        parseCommand(command);
+    }
 
     return 0;
 }
 
-void addRecord(StudentRecord records[], int &count) {
-    if (count >= MAX_RECORDS) { // Checks if database is full
-        std::cout << "Database is full. Cannot add more records.\n";
+// Function to create a database
+void createDatabase(const std::string &dbName) {
+    if (databases.find(dbName) != databases.end()) {
+        std::cout << "Error: Database '" << dbName << "' already exists.\n";
+        return;
+    }
+    databases[dbName] = {}; // Create an empty database
+    std::cout << "Database '" << dbName << "' created successfully.\n";
+}
+
+// Function to set the active database
+void setActiveDatabase(const std::string &dbName) {
+    if (databases.find(dbName) == databases.end()) {
+        std::cout << "Error: Database '" << dbName << "' does not exist.\n";
+        return;
+    }
+    currentDatabase = dbName;
+    std::cout << "Active database set to '" << dbName << "'.\n";
+}
+
+// Function to create a table in the active database
+void createTable(const std::string &tableName, const std::vector<std::pair<std::string, std::string>> &columns) {
+    if (currentDatabase.empty()) {
+        std::cout << "Error: No active database. Use a valid 'USE DATABASE' command first.\n";
         return;
     }
 
-    // Input data for the new record
-    std::cout << "Enter student ID: ";
-    std::cin >> records[count].id;   // Accessing array elements
-    std::cin.ignore(); // Clears the newline character from the input buffer
-    std::cout << "Enter student name: ";
-    std::getline(std::cin, records[count].name); // Input for strings
-    std::cout << "Enter student score: ";
-    std::cin >> records[count].score; // Input for floating-point numbers
-
-    count++; // Increment record count after adding a new record
-    std::cout << "Record added successfully.\n";
-}
-
-void displayTable(const StudentRecord records[], int count) {
-    if (count == 0) { // Checks if the database is empty
-        std::cout << "No records to display.\n";
+    auto &tables = databases[currentDatabase];
+    if (tables.find(tableName) != tables.end()) {
+        std::cout << "Error: Table '" << tableName << "' already exists in database '" << currentDatabase << "'.\n";
         return;
     }
 
-    //Database Table
-    std::cout << "\nDatabase Table:\n";
-    std::cout << "ID\tName\t\tScore\n";
-    std::cout << "-----------------------------------\n";
-
-    for (int i = 0; i < count; i++) { // Looping through arrays
-        std::cout << records[i].id << "\t" << records[i].name << "\t\t" << records[i].score << "\n";
-    }
-}
-
-void searchRecord(const StudentRecord records[], int count, int searchID) {
-    for (int i = 0; i < count; i++) { // Linear search implementation
-        if (records[i].id == searchID) { // Compares input ID with each record's ID
-            // If found, display the record details
-            std::cout << "Record Found:\n";
-            std::cout << "ID: " << records[i].id << "\n";
-            std::cout << "Name: " << records[i].name << "\n";
-            std::cout << "Score: " << records[i].score << "\n";
-            return; // Exit the function once the record is found
+    // Validate column types
+    for (const auto &col : columns) {
+        if (col.second != "INT" && col.second != "TEXT") {
+            std::cout << "Error: Unsupported column type '" << col.second << "' for column '" << col.first << "'.\n";
+            return;
         }
     }
-    std::cout << "Record with ID " << searchID << " not found.\n"; // If no match is found
+
+    tables[tableName] = columns; // Add the table schema
+    std::cout << "Table '" << tableName << "' created successfully with columns: ";
+    for (const auto &col : columns) {
+        std::cout << col.first << " (" << col.second << "), ";
+    }
+    std::cout << "\b\b.\n"; // Remove trailing comma and space
+}
+
+// Function to parse and process commands
+void parseCommand(const std::string &command) {
+    std::istringstream iss(command);
+    std::string action;
+    iss >> action;
+
+    if (action == "CREATE") {
+        std::string type;
+        iss >> type;
+
+        if (type == "DATABASE") {
+            std::string dbName;
+            iss >> dbName;
+            createDatabase(dbName);
+        } else if (type == "TABLE") {
+            std::string tableName, schema;
+            iss >> tableName;
+            std::getline(iss, schema, '(');
+            std::getline(iss, schema, ')');
+
+            std::vector<std::pair<std::string, std::string>> columns;
+            std::istringstream schemaStream(schema);
+            std::string column;
+
+            while (std::getline(schemaStream, column, ',')) {
+                std::istringstream colStream(column);
+                std::string colName, colType;
+                colStream >> colName >> colType;
+                columns.push_back({colName, colType});
+            }
+
+            createTable(tableName, columns);
+        }
+    } else if (action == "USE") {
+        std::string dbName;
+        iss >> dbName;
+        setActiveDatabase(dbName);
+    } else {
+        std::cout << "Error: Unsupported command.\n";
+    }
 }
