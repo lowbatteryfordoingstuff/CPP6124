@@ -10,8 +10,9 @@ std::string currentDatabase; // Tracks the active database
 
 // Function Prototypes
 void createDatabase(const std::string &dbName);
-void createTable(const std::string &tableName, const std::vector<std::pair<std::string, std::string>> &columns);
 void setActiveDatabase(const std::string &dbName);
+void createTable(const std::string &tableName, const std::vector<std::pair<std::string, std::string>> &columns);
+std::string trim(const std::string &str);
 void parseCommand(const std::string &command);
 
 // Main Function
@@ -23,7 +24,7 @@ int main() {
         std::cout << "> ";
         std::getline(std::cin, command);
 
-        if (command == "EXIT") {
+        if (trim(command) == "EXIT") {
             break;
         }
 
@@ -39,7 +40,7 @@ void createDatabase(const std::string &dbName) {
         std::cout << "Error: Database '" << dbName << "' already exists.\n";
         return;
     }
-    databases[dbName] = {}; // Create an empty database
+    databases[dbName] = {}; // Dynamically create a database
     std::cout << "Database '" << dbName << "' created successfully.\n";
 }
 
@@ -56,7 +57,7 @@ void setActiveDatabase(const std::string &dbName) {
 // Function to create a table in the active database
 void createTable(const std::string &tableName, const std::vector<std::pair<std::string, std::string>> &columns) {
     if (currentDatabase.empty()) {
-        std::cout << "Error: No active database. Use a valid 'USE DATABASE' command first.\n";
+        std::cout << "Error: No active database. Use a valid 'USE <database>' command first.\n";
         return;
     }
 
@@ -74,7 +75,7 @@ void createTable(const std::string &tableName, const std::vector<std::pair<std::
         }
     }
 
-    tables[tableName] = columns; // Add the table schema
+    tables[tableName] = columns; // Dynamically add table schema
     std::cout << "Table '" << tableName << "' created successfully with columns: ";
     for (const auto &col : columns) {
         std::cout << col.first << " (" << col.second << "), ";
@@ -82,9 +83,25 @@ void createTable(const std::string &tableName, const std::vector<std::pair<std::
     std::cout << "\b\b.\n"; // Remove trailing comma and space
 }
 
+// Function to trim leading/trailing spaces and semicolons
+std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" ");
+    size_t last = str.find_last_not_of(" ;"); // Trim spaces and semicolons
+    if (first == std::string::npos || last == std::string::npos) {
+        return ""; // Return empty string if input is only spaces/semicolons
+    }
+    return str.substr(first, (last - first + 1));
+}
+
 // Function to parse and process commands
 void parseCommand(const std::string &command) {
-    std::istringstream iss(command);
+    std::string trimmedCommand = trim(command);
+
+    if (trimmedCommand.empty()) {
+        return; // Ignore empty commands
+    }
+
+    std::istringstream iss(trimmedCommand);
     std::string action;
     iss >> action;
 
@@ -95,6 +112,7 @@ void parseCommand(const std::string &command) {
         if (type == "DATABASE") {
             std::string dbName;
             iss >> dbName;
+            dbName = trim(dbName); // Remove trailing semicolon
             createDatabase(dbName);
         } else if (type == "TABLE") {
             std::string tableName, schema;
@@ -107,17 +125,20 @@ void parseCommand(const std::string &command) {
             std::string column;
 
             while (std::getline(schemaStream, column, ',')) {
-                std::istringstream colStream(column);
+                std::istringstream colStream(trim(column));
                 std::string colName, colType;
                 colStream >> colName >> colType;
                 columns.push_back({colName, colType});
             }
 
-            createTable(tableName, columns);
+            createTable(trim(tableName), columns);
+        } else {
+            std::cout << "Error: Unsupported CREATE command.\n";
         }
     } else if (action == "USE") {
         std::string dbName;
         iss >> dbName;
+        dbName = trim(dbName); // Remove trailing semicolon
         setActiveDatabase(dbName);
     } else {
         std::cout << "Error: Unsupported command.\n";
