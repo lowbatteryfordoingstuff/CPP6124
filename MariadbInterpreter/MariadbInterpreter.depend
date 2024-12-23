@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1734883562 source:c:\users\maal\desktop\mariadbinterpreter\main.cpp
+	<iostream>
+	<fstream>
+	<string>
+

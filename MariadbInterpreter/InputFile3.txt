@@ -1,0 +1,23 @@
+CREATE fileOutput3.txt;
+DATABASES;
+CREATE TABLE orders(
+order_id INT,
+product_name TEXT,
+customer_name TEXT,
+customer_city TEXT,
+order_date TEXT,
+order_status TEXT,
+delivery_date TEXT
+);
+INSERT INTO orders(order_id,product_name,customer_name,customer_city,order_date,order_status,delivery_date)
+VALUES (1,'Product1','Customer1','City1','2024-01-01','Pending','2024-01-05');
+INSERT INTO orders(order_id,product_name,customer_name,customer_city,order_date,order_status,delivery_date)
+VALUES (2,'Product2','Customer2','City2','2024-01-02','Shipped','2024-01-06');
+INSERT INTO orders(order_id,product_name,customer_name,customer_city,order_date,order_status,delivery_date)
+VALUES (3,'Product3','Customer3','City3','2024-01-03','Delivered','2024-01-07');
+SELECT * FROM orders;
+UPDATE orders SET order_status='Canceled' WHERE order_id=1;
+SELECT * FROM orders;
+DELETE FROM orders WHERE order_id=2;
+SELECT * FROM orders;
+SELECT COUNT(*) FROM orders;
