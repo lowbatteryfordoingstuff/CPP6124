@@ -1,0 +1,231 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <sstream>
+
+// Data structure to store databases and tables
+std::map<std::string, std::map<std::string, std::vector<std::pair<std::string, std::string>>>> databases;
+std::string currentDatabase; // Tracks the active database
+
+// Function Prototypes
+void createDatabase(const std::string &dbName);
+void dropDatabase(const std::string &dbName);
+void showDatabases();
+void setActiveDatabase(const std::string &dbName);
+void createTable(const std::string &tableName, const std::vector<std::pair<std::string, std::string>> &columns);
+void dropTable(const std::string &tableName);
+void showTables();
+std::string trim(const std::string &str);
+void parseCommand(const std::string &command);
+
+// Main Function
+int main() {
+    std::string command;
+
+    std::cout << "Enter commands (type 'EXIT' to quit):\n";
+    while (true) {
+        std::cout << "> ";
+        std::getline(std::cin, command);
+
+        if (trim(command) == "EXIT") {
+            break;
+        }
+
+        parseCommand(command);
+    }
+
+    return 0;
+}
+
+// Function to create a database
+void createDatabase(const std::string &dbName) {
+    if (databases.find(dbName) != databases.end()) {
+        std::cout << "Error: Database '" << dbName << "' already exists.\n";
+        return;
+    }
+    databases[dbName] = {}; // Dynamically create a database
+    std::cout << "Database '" << dbName << "' created successfully.\n";
+}
+
+// Function to delete a database
+void dropDatabase(const std::string &dbName) {
+    if (databases.find(dbName) == databases.end()) {
+        std::cout << "Error: Database '" << dbName << "' does not exist.\n";
+        return;
+    }
+    databases.erase(dbName); // Remove the database
+    if (currentDatabase == dbName) {
+        currentDatabase.clear(); // Reset the active database if it was dropped
+    }
+    std::cout << "Database '" << dbName << "' dropped successfully.\n";
+}
+
+// Function to list all databases
+void showDatabases() {
+    if (databases.empty()) {
+        std::cout << "No databases found.\n";
+        return;
+    }
+    std::cout << "Databases:\n";
+    for (const auto &db : databases) {
+        std::cout << "- " << db.first << "\n";
+    }
+}
+
+// Function to set the active database
+void setActiveDatabase(const std::string &dbName) {
+    if (databases.find(dbName) == databases.end()) {
+        std::cout << "Error: Database '" << dbName << "' does not exist.\n";
+        return;
+    }
+    currentDatabase = dbName;
+    std::cout << "Active database set to '" << dbName << "'.\n";
+}
+
+// Function to create a table in the active database
+void createTable(const std::string &tableName, const std::vector<std::pair<std::string, std::string>> &columns) {
+    if (currentDatabase.empty()) {
+        std::cout << "Error: No active database. Use a valid 'USE <database>' command first.\n";
+        return;
+    }
+
+    auto &tables = databases[currentDatabase];
+    if (tables.find(tableName) != tables.end()) {
+        std::cout << "Error: Table '" << tableName << "' already exists in database '" << currentDatabase << "'.\n";
+        return;
+    }
+
+    tables[tableName] = columns; // Dynamically add table schema
+    std::cout << "Table '" << tableName << "' created successfully with columns: ";
+    for (const auto &col : columns) {
+        std::cout << col.first << " (" << col.second << "), ";
+    }
+    std::cout << "\b\b.\n"; // Remove trailing comma and space
+}
+
+// Function to delete a table from the active database
+void dropTable(const std::string &tableName) {
+    if (currentDatabase.empty()) {
+        std::cout << "Error: No active database. Use a valid 'USE <database>' command first.\n";
+        return;
+    }
+
+    auto &tables = databases[currentDatabase];
+    if (tables.find(tableName) == tables.end()) {
+        std::cout << "Error: Table '" << tableName << "' does not exist in database '" << currentDatabase << "'.\n";
+        return;
+    }
+
+    tables.erase(tableName); // Remove the table
+    std::cout << "Table '" << tableName << "' dropped successfully.\n";
+}
+
+// Function to list all tables in the active database
+void showTables() {
+    if (currentDatabase.empty()) {
+        std::cout << "Error: No active database. Use a valid 'USE <database>' command first.\n";
+        return;
+    }
+
+    const auto &tables = databases[currentDatabase];
+    if (tables.empty()) {
+        std::cout << "No tables found in database '" << currentDatabase << "'.\n";
+        return;
+    }
+
+    std::cout << "Tables in database '" << currentDatabase << "':\n";
+    for (const auto &table : tables) {
+        std::cout << "- " << table.first << "\n";
+    }
+}
+
+// Function to trim leading/trailing spaces and semicolons
+std::string trim(const std::string &str) {
+    size_t first = str.find_first_not_of(" ");
+    size_t last = str.find_last_not_of(" ;"); // Trim spaces and semicolons
+    if (first == std::string::npos || last == std::string::npos) {
+        return ""; // Return empty string if input is only spaces/semicolons
+    }
+    return str.substr(first, (last - first + 1));
+}
+
+// Function to parse and process commands
+void parseCommand(const std::string &command) {
+    std::string trimmedCommand = trim(command);
+
+    if (trimmedCommand.empty()) {
+        return; // Ignore empty commands
+    }
+
+    std::istringstream iss(trimmedCommand);
+    std::string action;
+    iss >> action;
+
+    if (action == "CREATE") {
+        std::string type;
+        iss >> type;
+
+        if (type == "DATABASE") {
+            std::string dbName;
+            iss >> dbName;
+            dbName = trim(dbName); // Remove trailing semicolon
+            createDatabase(dbName);
+        } else if (type == "TABLE") {
+            std::string tableName, schema;
+            iss >> tableName;
+            std::getline(iss, schema, '(');
+            std::getline(iss, schema, ')');
+
+            std::vector<std::pair<std::string, std::string>> columns;
+            std::istringstream schemaStream(schema);
+            std::string column;
+
+            while (std::getline(schemaStream, column, ',')) {
+                std::istringstream colStream(trim(column));
+                std::string colName, colType;
+                colStream >> colName >> colType;
+                columns.push_back({colName, colType});
+            }
+
+            createTable(trim(tableName), columns);
+        } else {
+            std::cout << "Error: Unsupported CREATE command.\n";
+        }
+    } else if (action == "DROP") {
+        std::string type;
+        iss >> type;
+
+        if (type == "DATABASE") {
+            std::string dbName;
+            iss >> dbName;
+            dbName = trim(dbName); // Remove trailing semicolon
+            dropDatabase(dbName);
+        } else if (type == "TABLE") {
+            std::string tableName;
+            iss >> tableName;
+            tableName = trim(tableName); // Remove trailing semicolon
+            dropTable(tableName);
+        } else {
+            std::cout << "Error: Unsupported DROP command.\n";
+        }
+    } else if (action == "USE") {
+        std::string dbName;
+        iss >> dbName;
+        dbName = trim(dbName); // Remove trailing semicolon
+        setActiveDatabase(dbName);
+    } else if (action == "SHOW") {
+        std::string type;
+        iss >> type;
+
+        if (type == "DATABASES") {
+            showDatabases();
+        } else if (type == "TABLES") {
+            showTables();
+        } else {
+            std::cout << "Error: Unsupported SHOW command.\n";
+        }
+    } else {
+        std::cout << "Error: Unsupported command.\n";
+    }
+}
